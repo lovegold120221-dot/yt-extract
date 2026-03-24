@@ -93,16 +93,26 @@ app.post('/api/extract', async (req, res) => {
         } else if (media === 'video') {
             const qualityMap = {
                 '480': '360p',
-                '720': '720p',
+                '720': '720p', 
                 '1080': '1080p'
             };
             const quality = qualityMap[video_quality] || '720p';
 
             const outputPath = path.join(DOWNLOAD_DIR, `${jobId}.mp4`);
-            const stream = ytdl.downloadFromInfo(info, {
-                filter: f => f.hasVideo && f.hasAudio && f.qualityLabel === quality,
+
+            // Get format - prefer itag with both video and audio
+            const format = ytdl.chooseFormat(info.formats, {
+                filter: f => f.hasVideo && f.hasAudio,
                 quality: 'highest'
             });
+
+            if (!format) {
+                result.status = 'error';
+                result.error = 'No suitable format found';
+                return res.status(400).json(result);
+            }
+
+            const stream = ytdl.downloadFromInfo(info, { format });
             const writeStream = fs.createWriteStream(outputPath);
 
             stream.on('end', () => {
