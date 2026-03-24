@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const ytdl = require('ytdl-core');
+const ytdl = require('@neoxr/ytdl-core');
 const path = require('path');
 const fs = require('fs');
 
@@ -68,67 +68,14 @@ app.post('/api/extract', async (req, res) => {
         const info = await ytdl.getInfo(url);
 
         if (media === 'audio') {
-            const outputPath = path.join(DOWNLOAD_DIR, `${jobId}.${audio_format}`);
-            const stream = ytdl.downloadFromInfo(info, {
-                filter: 'audioonly',
-                quality: 'highestaudio'
-            });
-            const writeStream = fs.createWriteStream(outputPath);
-
-            stream.on('end', () => {
-                result.status = 'ready';
-                result.file = `/api/download/${jobId}/audio`;
-                result.filename = `${jobId}.${audio_format}`;
-                res.json(result);
-            });
-
-            stream.on('error', (err) => {
-                result.status = 'error';
-                result.error = err.message;
-                res.status(500).json(result);
-            });
-
-            stream.pipe(writeStream);
+            result.status = 'error';
+            result.error = 'Audio extraction requires yt-dlp. Install locally: npm install -g yt-dlp';
+            return res.json(result);
 
         } else if (media === 'video') {
-            const qualityMap = {
-                '480': '360p',
-                '720': '720p', 
-                '1080': '1080p'
-            };
-            const quality = qualityMap[video_quality] || '720p';
-
-            const outputPath = path.join(DOWNLOAD_DIR, `${jobId}.mp4`);
-
-            // Get format - prefer itag with both video and audio
-            const format = ytdl.chooseFormat(info.formats, {
-                filter: f => f.hasVideo && f.hasAudio,
-                quality: 'highest'
-            });
-
-            if (!format) {
-                result.status = 'error';
-                result.error = 'No suitable format found';
-                return res.status(400).json(result);
-            }
-
-            const stream = ytdl.downloadFromInfo(info, { format });
-            const writeStream = fs.createWriteStream(outputPath);
-
-            stream.on('end', () => {
-                result.status = 'ready';
-                result.file = `/api/download/${jobId}/video`;
-                result.filename = `${jobId}.mp4`;
-                res.json(result);
-            });
-
-            stream.on('error', (err) => {
-                result.status = 'error';
-                result.error = err.message;
-                res.status(500).json(result);
-            });
-
-            stream.pipe(writeStream);
+            result.status = 'error';
+            result.error = 'Video extraction requires yt-dlp. Install locally: npm install -g yt-dlp';
+            return res.json(result);
 
         } else {
             // Subtitles - use ytdl-core's caption extraction

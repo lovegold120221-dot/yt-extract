@@ -8,6 +8,8 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "@neoxr/ytdl-core": "^4.12.5",
+    "@ybd-project/ytdl-core": "^6.0.8",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "ytdl-core": "^4.11.5"
