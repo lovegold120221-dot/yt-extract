@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth bg-[#030303]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eburon | Media Extraction Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@100;300;400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#030303',
+                        surface: '#0a0a0a',
+                        eburon: {
+                            gold: '#D4AF37',
+                            sand: '#E5D9C5',
+                            bronze: '#BFA181',
+                            muted: '#8A7D6D'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display:['Syne', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            color: #E5D9C5;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .noise-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.04;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+        .tech-grid {
+            background-size: 100px 100px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            mask-image: radial-gradient(ellipse at center, black 10%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 10%, transparent 80%);
+        }
+        .gold-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #E5D9C5 40%, #BFA181 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -1;
+            pointer-events: none;
+        }
+        input:focus { outline: none; }
+        input[type="radio"]:checked + div {
+            border-color: #BFA181;
+            background-color: rgba(191, 161, 129, 0.05);
+            color: #E5D9C5;
+        }
+        input[type="radio"]:checked + div .indicator {
+            background-color: #BFA181;
+            box-shadow: 0 0 10px rgba(191, 161, 129, 0.5);
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #8A7D6D; }
+    </style>
+</head>
+<body class="relative min-h-screen flex flex-col">
+    <div class="noise-overlay"></div>
+    <div class="fixed inset-0 tech-grid z-[-1]"></div>
+    
+    <div class="ambient-glow bg-eburon-bronze w-[600px] h-[600px] top-[-300px] left-[50%] -translate-x-1/2"></div>
+
+    <nav class="w-full z-50 px-6 py-8 flex justify-between items-center relative">
+        <div class="font-display font-bold text-xl tracking-tighter text-white uppercase flex items-center gap-3">
+            <i class="fas fa-layer-group text-eburon-bronze text-sm"></i>
+            Eburon <span class="text-eburon-muted font-normal ml-1">Extract</span>
+        </div>
+        <div class="font-mono text-[10px] tracking-widest uppercase text-white/40 flex items-center gap-2">
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            Systems Online
+        </div>
+    </nav>
+
+    <main class="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10">
+        
+        <div class="text-center mb-12">
+            <h1 class="font-display text-4xl md:text-6xl font-normal tracking-tighter mb-4 text-white">
+                Parse. <span class="gold-gradient italic">Transcribe.</span> Download.
+            </h1>
+            <p class="font-mono text-xs text-white/40 uppercase tracking-[0.2em]">
+                Deep media extraction pipeline via URL ingestion.
+            </p>
+        </div>
+
+        <div class="w-full max-w-3xl relative">
+            <div class="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-white/50 z-20"></div>
+            <div class="absolute -top-1 -right-1 w-2 h-2 border-t border-r border-white/50 z-20"></div>
+            <div class="absolute -bottom-1 -left-1 w-2 h-2 border-b border-l border-white/50 z-20"></div>
+            <div class="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-white/50 z-20"></div>
+
+            <div class="bg-surface/80 backdrop-blur-xl border border-white/10 p-1 relative z-10 shadow-2xl shadow-eburon-bronze/5">
+                <div class="bg-[#050505] border border-white/5 p-8 flex flex-col gap-10">
+                    
+                    <div>
+                        <label class="font-mono text-[10px] uppercase tracking-widest text-eburon-bronze mb-3 flex items-center gap-2">
+                            <span>01.</span> Target Ingestion URL
+                        </label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fab fa-youtube text-white/20 group-focus-within:text-eburon-bronze transition-colors"></i>
+                            </div>
+                            <input type="url" id="youtube-url" placeholder="https://youtube.com/watch?v=..." 
+                                class="w-full bg-black border border-white/10 pl-12 pr-4 py-5 font-mono text-sm text-white placeholder-white/20 focus:border-eburon-bronze/50 focus:bg-white/[0.02] transition-all">
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-10">
+                        <div>
+                            <label class="font-mono text-[10px] uppercase tracking-widest text-eburon-bronze mb-4 flex items-center gap-2">
+                                <span>02.</span> Media Payload
+                            </label>
+                            <div class="flex flex-col gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="media" value="subs" class="peer sr-only" checked>
+                                    <div class="border border-white/10 p-4 hover:border-white/30 transition-all flex justify-between items-center text-white/50">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fas fa-closed-captioning text-lg w-6 text-center"></i>
+                                            <span class="font-sans text-sm font-medium">Subtitles Only</span>
+                                        </div>
+                                        <div class="indicator w-2 h-2 bg-transparent rounded-full transition-all"></div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="media" value="audio" class="peer sr-only">
+                                    <div class="border border-white/10 p-4 hover:border-white/30 transition-all flex justify-between items-center text-white/50">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fas fa-headphones text-lg w-6 text-center"></i>
+                                            <span class="font-sans text-sm font-medium">Audio Extraction</span>
+                                        </div>
+                                        <div class="indicator w-2 h-2 bg-transparent rounded-full transition-all"></div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="media" value="video" class="peer sr-only">
+                                    <div class="border border-white/10 p-4 hover:border-white/30 transition-all flex justify-between items-center text-white/50">
+                                        <div class="flex items-center gap-3">
+                                            <i class="fas fa-film text-lg w-6 text-center"></i>
+                                            <span class="font-sans text-sm font-medium">Full Video Render</span>
+                                        </div>
+                                        <div class="indicator w-2 h-2 bg-transparent rounded-full transition-all"></div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="video-format-section" class="hidden">
+                            <label class="font-mono text-[10px] uppercase tracking-widest text-eburon-bronze mb-4 flex items-center gap-2">
+                                <span>03.</span> Video Quality
+                            </label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="video_quality" value="480" class="peer sr-only" checked>
+                                    <div class="border border-white/10 p-3 hover:border-white/30 transition-all flex flex-col items-center gap-2 text-white/50 h-full">
+                                        <span class="font-mono text-xs font-bold border border-current px-1.5 py-0.5 rounded-sm">480p</span>
+                                        <span class="font-sans text-xs font-medium">SD</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="video_quality" value="720" class="peer sr-only">
+                                    <div class="border border-white/10 p-3 hover:border-white/30 transition-all flex flex-col items-center gap-2 text-white/50 h-full">
+                                        <span class="font-mono text-xs font-bold border border-current px-1.5 py-0.5 rounded-sm">720p</span>
+                                        <span class="font-sans text-xs font-medium">HD</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="video_quality" value="1080" class="peer sr-only">
+                                    <div class="border border-white/10 p-3 hover:border-white/30 transition-all flex flex-col items-center gap-2 text-white/50 h-full">
+                                        <span class="font-mono text-xs font-bold border border-current px-1.5 py-0.5 rounded-sm">1080p</span>
+                                        <span class="font-sans text-xs font-medium">FHD</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="audio-format-section" class="hidden">
+                            <label class="font-mono text-[10px] uppercase tracking-widest text-eburon-bronze mb-4 flex items-center gap-2">
+                                <span>03.</span> Audio Format
+                            </label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="audio_format" value="mp3" class="peer sr-only" checked>
+                                    <div class="border border-white/10 p-3 hover:border-white/30 transition-all flex flex-col items-center gap-2 text-white/50 h-full">
+                                        <span class="font-mono text-[10px] font-bold border border-current px-1.5 py-0.5 rounded-sm">.MP3</span>
+                                        <span class="font-sans text-xs font-medium">MP3</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="audio_format" value="wav" class="peer sr-only">
+                                    <div class="border border-white/10 p-3 hover:border-white/30 transition-all flex flex-col items-center gap-2 text-white/50 h-full">
+                                        <span class="font-mono text-[10px] font-bold border border-current px-1.5 py-0.5 rounded-sm">.WAV</span>
+                                        <span class="font-sans text-xs font-medium">WAV</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="audio_format" value="webm" class="peer sr-only">
+                                    <div class="border border-white/10 p-3 hover:border-white/30 transition-all flex flex-col items-center gap-2 text-white/50 h-full">
+                                        <span class="font-mono text-[10px] font-bold border border-current px-1.5 py-0.5 rounded-sm">.WEBM</span>
+                                        <span class="font-sans text-xs font-medium">WebM</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="subtitle-format-section">
+                            <label class="font-mono text-[10px] uppercase tracking-widest text-eburon-bronze mb-4 flex items-center gap-2">
+                                <span>03.</span> Subtitle Format
+                            </label>
+                            <div class="grid grid-cols-1 gap-3">
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="format" value="srt" class="peer sr-only" checked>
+                                    <div class="border border-white/10 p-4 hover:border-white/30 transition-all flex justify-between items-center text-white/50 h-full">
+                                        <div class="flex items-center gap-3">
+                                            <span class="font-mono text-xs font-bold border border-current px-1.5 py-0.5 rounded-sm">.SRT</span>
+                                            <span class="font-sans text-sm font-medium">Standard SubRip</span>
+                                        </div>
+                                        <div class="indicator w-2 h-2 bg-transparent rounded-full transition-all"></div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="format" value="txt" class="peer sr-only">
+                                    <div class="border border-white/10 p-4 hover:border-white/30 transition-all flex justify-between items-center text-white/50 h-full">
+                                        <div class="flex items-center gap-3">
+                                            <span class="font-mono text-xs font-bold border border-current px-1.5 py-0.5 rounded-sm">.TXT</span>
+                                            <span class="font-sans text-sm font-medium">Plain Text Transcript</span>
+                                        </div>
+                                        <div class="indicator w-2 h-2 bg-transparent rounded-full transition-all"></div>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer relative">
+                                    <input type="radio" name="format" value="raw" class="peer sr-only">
+                                    <div class="border border-white/10 p-4 hover:border-white/30 transition-all flex justify-between items-center text-white/50 h-full">
+                                        <div class="flex items-center gap-3">
+                                            <span class="font-mono text-xs font-bold border border-current px-1.5 py-0.5 rounded-sm">RAW</span>
+                                            <span class="font-sans text-sm font-medium">JSON Timecodes</span>
+                                        </div>
+                                        <div class="indicator w-2 h-2 bg-transparent rounded-full transition-all"></div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6 border-t border-white/5">
+                        <button id="extract-btn" class="w-full relative overflow-hidden group border border-white/20 bg-white/5 py-5 hover:border-eburon-bronze transition-colors duration-500 flex items-center justify-center gap-4">
+                            <div class="absolute inset-0 bg-eburon-sand translate-y-[100%] group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-0"></div>
+                            <i class="fas fa-download relative z-10 text-white group-hover:text-obsidian transition-colors duration-500"></i>
+                            <span class="relative z-10 font-mono text-xs uppercase tracking-[0.2em] font-bold text-white group-hover:text-obsidian transition-colors duration-500">
+                                Initialize Extraction
+                            </span>
+                        </button>
+                        <a id="download-link" href="#" class="hidden mt-4 w-full relative overflow-hidden group border border-green-500/50 bg-green-500/10 py-3 flex items-center justify-center gap-3">
+                            <i class="fas fa-check text-green-400"></i>
+                            <span class="font-mono text-xs uppercase tracking-[0.2em] text-green-400">Download Ready - Click to Download</span>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="terminal-container" class="mt-6 border border-white/10 bg-[#050505] p-1 relative shadow-2xl hidden opacity-0 transition-opacity duration-500">
+                <div class="bg-black p-4 h-48 overflow-y-auto font-mono text-[10px] text-white/60 leading-relaxed" id="terminal-output">
+                    <div class="text-eburon-bronze mb-2">> Eburon Extractor v1.2.4 connected.</div>
+                    <div class="mb-2">> Awaiting command...</div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="w-full z-50 px-6 py-8 flex justify-between items-center relative border-t border-white/5 mt-auto">
+        <div class="font-mono text-[9px] tracking-widest text-white/30 uppercase">
+            &copy; 2026 EBURON LABS. Extraction Protocol.
+        </div>
+        <div class="flex gap-6 font-mono text-[9px] uppercase tracking-widest text-white/40">
+            <a href="#" class="hover:text-white transition-colors">Documentation</a>
+            <a href="#" class="hover:text-white transition-colors">API Keys</a>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = 'http://localhost:8122/api';
+
+        // Toggle audio/subtitle/video format visibility
+        document.querySelectorAll('input[name="media"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const audioSection = document.getElementById('audio-format-section');
+                const subtitleSection = document.getElementById('subtitle-format-section');
+                const videoSection = document.getElementById('video-format-section');
+                if (this.value === 'audio') {
+                    audioSection.classList.remove('hidden');
+                    subtitleSection.classList.add('hidden');
+                    videoSection.classList.add('hidden');
+                } else if (this.value === 'video') {
+                    audioSection.classList.add('hidden');
+                    subtitleSection.classList.add('hidden');
+                    videoSection.classList.remove('hidden');
+                } else {
+                    audioSection.classList.add('hidden');
+                    subtitleSection.classList.remove('hidden');
+                    videoSection.classList.add('hidden');
+                }
+            });
+        });
+
+        document.getElementById('extract-btn').addEventListener('click', async function() {
+            const urlInput = document.getElementById('youtube-url').value;
+            const terminalContainer = document.getElementById('terminal-container');
+            const terminalOutput = document.getElementById('terminal-output');
+            const downloadLink = document.getElementById('download-link');
+            const btnText = this.querySelector('span');
+            const btnIcon = this.querySelector('i');
+
+            const mediaType = document.querySelector('input[name="media"]:checked').value;
+            const formatType = document.querySelector('input[name="format"]:checked').value;
+            const audioFormat = document.querySelector('input[name="audio_format"]:checked')?.value || 'mp3';
+            const videoQuality = document.querySelector('input[name="video_quality"]:checked')?.value || '480';
+
+            if (!urlInput) {
+                alert('Please enter a target YouTube URL.');
+                return;
+            }
+
+            // Hide previous download link
+            downloadLink.classList.add('hidden');
+
+            // Show terminal
+            terminalContainer.classList.remove('hidden');
+            void terminalContainer.offsetWidth;
+            terminalContainer.classList.remove('opacity-0');
+
+            // Button loading state
+            btnText.innerText = "Processing...";
+            btnIcon.className = "fas fa-circle-notch fa-spin relative z-10 text-white group-hover:text-obsidian transition-colors duration-500";
+            this.classList.add('pointer-events-none');
+
+            // Log to terminal
+            const log = (msg, color = 'white/60') => {
+                terminalOutput.innerHTML += `<div style="color: ${color}">${msg}</div>`;
+                terminalOutput.scrollTop = terminalOutput.scrollHeight;
+            };
+
+            log('> Eburon Extractor v1.2.4 executing job...', '#BFA181');
+            log(`> Initiating connection to target: ${urlInput}`);
+            log('> Resolving video metadata...');
+
+            try {
+                const response = await fetch(`${API_BASE}/extract`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: urlInput, media: mediaType, format: formatType, audio_format: audioFormat, video_quality: videoQuality })
+                });
+
+                const result = await response.json();
+                log(`> Payload Requested: [${mediaType.toUpperCase()}]`);
+                log(`> Subtitle Encoding Requested: [${formatType.toUpperCase()}]`);
+
+                if (result.status === 'processing') {
+                    log('> Processing extraction...');
+                }
+
+                if (result.status === 'ready') {
+                    log('<span class="text-green-400">> EXTRACTION COMPLETE.</span>');
+                    log(`> File ready: ${result.filename}`);
+                    
+                    // Show download link
+                    downloadLink.href = result.file;
+                    downloadLink.download = result.filename;
+                    downloadLink.classList.remove('hidden');
+                } else if (result.status === 'error') {
+                    log(`<span class="text-red-400">> ERROR: ${result.error}</span>`);
+                }
+            } catch (err) {
+                log(`<span class="text-red-400">> CONNECTION ERROR: Backend not reachable. Make sure server is running on port 8122.</span>`);
+                log('> Usage: python3 server.py');
+            }
+
+            // Reset button
+            btnText.innerText = "Initialize Extraction";
+            btnIcon.className = "fas fa-download relative z-10 text-white group-hover:text-obsidian transition-colors duration-500";
+            this.classList.remove('pointer-events-none');
+        });
+    </script>
+</body>
+</html>
