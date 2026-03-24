@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { execSync } = require('child_process');
+const ytdl = require('ytdl-core');
 const path = require('path');
 const fs = require('fs');
 
@@ -17,15 +17,6 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
     fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
-function runCommand(cmd) {
-    try {
-        const output = execSync(cmd, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 });
-        return output;
-    } catch (err) {
-        return err.stdout + err.stderr;
-    }
-}
-
 function generateJobId() {
     return Math.random().toString(36).substring(2, 10);
 }
@@ -34,7 +25,30 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'online', service: 'Eburon Extract v1.0' });
 });
 
-app.post('/api/extract', (req, res) => {
+app.get('/api/info', async (req, res) => {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'No URL provided' });
+
+    try {
+        const info = await ytdl.getInfo(url);
+        res.json({
+            title: info.videoDetails.title,
+            duration: info.videoDetails.lengthSeconds,
+            thumbnail: info.videoDetails.thumbnails[0]?.url,
+            formats: info.formats.map(f => ({
+                itag: f.itag,
+                quality: f.qualityLabel || f.quality,
+                type: f.mimeType?.split(';')[0] || 'unknown',
+                hasAudio: f.hasAudio,
+                hasVideo: f.hasVideo
+            }))
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/extract', async (req, res) => {
     const { url, media = 'subs', format = 'srt', audio_format = 'mp3', video_quality = '720' } = req.body;
 
     if (!url) {
@@ -51,53 +65,83 @@ app.post('/api/extract', (req, res) => {
     };
 
     try {
-        if (media === 'subs') {
-            const outputPath = path.join(DOWNLOAD_DIR, jobId);
-            const cmd = `yt-dlp --write-subs --write-auto-subs --sub-lang en --skip-download --convert-subs ${format} -o "${outputPath}" "${url}"`;
-            runCommand(cmd);
+        const info = await ytdl.getInfo(url);
 
-            const basePath = path.join(DOWNLOAD_DIR, jobId);
-            let subtitleFile = `${basePath}.en.${format}`;
-            if (!fs.existsSync(subtitleFile)) {
-                subtitleFile = `${basePath}.en.srt`;
-            }
-
-            if (fs.existsSync(subtitleFile)) {
-                result.status = 'ready';
-                result.file = `/api/download/${jobId}/${format}`;
-                result.filename = path.basename(subtitleFile);
-            } else {
-                result.status = 'ready';
-                result.file = `/api/download/${jobId}/${format}`;
-                result.filename = `subtitle.${format}`;
-            }
-        } else if (media === 'audio') {
+        if (media === 'audio') {
             const outputPath = path.join(DOWNLOAD_DIR, `${jobId}.${audio_format}`);
-            const cmd = `yt-dlp -x --audio-format ${audio_format} -o "${outputPath}" "${url}"`;
-            runCommand(cmd);
+            const stream = ytdl.downloadFromInfo(info, {
+                filter: 'audioonly',
+                quality: 'highestaudio'
+            });
+            const writeStream = fs.createWriteStream(outputPath);
 
-            if (fs.existsSync(outputPath)) {
+            stream.on('end', () => {
                 result.status = 'ready';
                 result.file = `/api/download/${jobId}/audio`;
                 result.filename = `${jobId}.${audio_format}`;
-            }
-        } else if (media === 'video') {
-            const outputPath = path.join(DOWNLOAD_DIR, `${jobId}.mp4`);
-            const cmd = `yt-dlp -f "bv[height<=${video_quality}]+ba/best[height<=${video_quality}]" --merge-output-format mp4 -o "${outputPath}" "${url}"`;
-            runCommand(cmd);
+                res.json(result);
+            });
 
-            if (fs.existsSync(outputPath)) {
+            stream.on('error', (err) => {
+                result.status = 'error';
+                result.error = err.message;
+                res.status(500).json(result);
+            });
+
+            stream.pipe(writeStream);
+
+        } else if (media === 'video') {
+            const qualityMap = {
+                '480': '360p',
+                '720': '720p',
+                '1080': '1080p'
+            };
+            const quality = qualityMap[video_quality] || '720p';
+
+            const outputPath = path.join(DOWNLOAD_DIR, `${jobId}.mp4`);
+            const stream = ytdl.downloadFromInfo(info, {
+                filter: f => f.hasVideo && f.hasAudio && f.qualityLabel === quality,
+                quality: 'highest'
+            });
+            const writeStream = fs.createWriteStream(outputPath);
+
+            stream.on('end', () => {
                 result.status = 'ready';
                 result.file = `/api/download/${jobId}/video`;
                 result.filename = `${jobId}.mp4`;
+                res.json(result);
+            });
+
+            stream.on('error', (err) => {
+                result.status = 'error';
+                result.error = err.message;
+                res.status(500).json(result);
+            });
+
+            stream.pipe(writeStream);
+
+        } else {
+            // Subtitles - use ytdl-core's caption extraction
+            const captions = info.player_response?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+            if (captions && captions.length > 0) {
+                const caption = captions.find(c => c.languageCode === 'en') || captions[0];
+                result.status = 'ready';
+                result.file = `/api/caption/${jobId}/${format}`;
+                result.captionUrl = caption.baseUrl;
+                result.filename = `${info.videoDetails.videoId}.${format}`;
+                res.json(result);
+            } else {
+                result.status = 'error';
+                result.error = 'No captions available for this video';
+                res.status(404).json(result);
             }
         }
     } catch (err) {
         result.status = 'error';
         result.error = err.message;
+        res.status(500).json(result);
     }
-
-    res.json(result);
 });
 
 app.get('/api/download/:jobId/:type', (req, res) => {
@@ -122,19 +166,67 @@ app.get('/api/download/:jobId/:type', (req, res) => {
         return res.status(404).json({ error: 'Video file not found' });
     }
 
-    if (['srt', 'txt', 'raw'].includes(type)) {
-        let filePath = `${basePath}.en.${type}`;
-        if (!fs.existsSync(filePath)) {
-            filePath = `${basePath}.en.srt`;
-        }
-        if (fs.existsSync(filePath)) {
-            return res.download(filePath);
-        }
-        return res.status(404).json({ error: 'Subtitle file not found' });
-    }
-
     res.status(400).json({ error: 'Invalid download type' });
 });
+
+app.get('/api/caption/:jobId/:format', async (req, res) => {
+    const { jobId, format } = req.params;
+    const { url } = req.query;
+
+    if (!url) {
+        return res.status(400).json({ error: 'Caption URL required' });
+    }
+
+    try {
+        const response = await fetch(url);
+        let text = await response.text();
+
+        if (format === 'txt') {
+            // Strip HTML tags for plain text
+            text = text.replace(/<[^>]*>/g, '');
+        } else if (format === 'srt') {
+            // Convert YouTube XML transcript to SRT
+            text = convertToSRT(text);
+        }
+
+        res.type(format === 'txt' ? 'text/plain' : 'text/srt');
+        res.send(text);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+function convertToSRT(xml) {
+    const captions = xml.match(/<text[^>]*>([^<]*)<\/text>/g) || [];
+    let srt = '';
+    let index = 1;
+
+    captions.forEach(caption => {
+        const startMatch = caption.match(/start="([^"]*)"/);
+        const durMatch = caption.match(/dur="([^"]*)"/);
+        const textMatch = caption.match(/>([^<]*)<\/text>/);
+
+        if (startMatch && textMatch) {
+            const start = parseFloat(startMatch[1]);
+            const dur = durMatch ? parseFloat(durMatch[1]) : 3;
+            const end = start + dur;
+            const text = textMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'");
+
+            srt += `${index}\n${formatTime(start)} --> ${formatTime(end)}\n${text}\n\n`;
+            index++;
+        }
+    });
+
+    return srt;
+}
+
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 1000);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
+}
 
 // Serve static files
 app.use(express.static(__dirname));
